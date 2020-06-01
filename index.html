@@ -1,0 +1,169 @@
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>TABÚ</title>
+	<link rel="icon" type="image/png" href="tabu.png">
+	<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet"> 
+	<link href="estilo.css" rel="stylesheet">
+</head>
+
+<body>
+	<div class="contenedor" id="instrucciones">
+		<div class="casilla titulo">TABÚ</div>
+		<div class="casilla">Se juega en dos equipos: <span class="red">Rojo</span> y <span class="blue">Azul</span></div>
+		<div class="casilla">Trata de que tu compañero descubra la palabra de arriba.</div>
+		<div class="casilla">¡Pero no puedes decir ninguna de las palabras de abajo!</div>
+		<div class="casilla">Tenéis <input id="tiempo" type="number" value="45" min="1" step="1"/> segundos para adivinar la palabra. Pasado este tiempo, perdéis el turno.</div>
+		<div class="casilla">Si tu compañero dice una de las palabras de abajo, es TABÚ y perdéis un punto.</div>
+		<div class="casilla">Si acertáis, ganáis un punto.</div>
+		<div class="casilla media"></div>
+		<div class="casilla media respuesta" id="bien" onclick="comenzar();">Comenzar</div>
+	</div>
+	
+	<div class="contenedor" id="resumen">
+		<div class="casilla titulo">TABÚ</div>
+		<div class="casilla">Turno del equipo</div>
+		<div class="casilla" id="equipo"></div>
+		<div class="casilla">Marcador</div>
+		<div class="casilla"><span id="rojo" class="red">0</span> - <span id="azul" class="blue">0</span></div>
+		<div class="casilla"></div>
+		<div class="casilla"></div>
+		<div class="casilla media"></div>
+		<div class="casilla media respuesta" id="bien" onclick="vamos();">Vamos!</div>
+	</div>
+	
+	<div class="contenedor" id="tarjeta">
+		<div class="casilla media" id="timer"><div id="progreso"></div><div id="contador">30s</div></div>
+		<div class="casilla media" id="marcador"><span id="rojo2" class="red">0</span> - <span id="azul2" class="blue">0</span></div>
+		<div class="casilla titulo" id="p0">TABÚ</div>
+		<div class="casilla" id="p1">Prohibida 1</div>
+		<div class="casilla" id="p2">Prohibida 2</div>
+		<div class="casilla" id="p3">Prohibida 3</div>
+		<div class="casilla" id="p4">Prohibida 4</div>
+		<div class="casilla" id="p5">Prohibida 5</div>
+		<div class="casilla media respuesta" id="bien" onclick="punto_cambio_turno(+1);">OK</div>
+		<div class="casilla media respuesta" id="mal"  onclick="punto_cambio_turno(-1);">¡TABÚ!</div>
+	</div>
+	
+	<div class="contenedor" id="fin_tiempo">
+		<div class="casilla titulo">Se ha acabado el tiempo</div>
+		<div class="casilla">Seguro que al final ha pasado algo</div>
+		<div class="casilla" id="adivinar"></div>
+		<div class="casilla" id="tabus"></div>
+		<div class="casilla"></div>
+		<div class="casilla media respuesta" id="bien" onclick="punto_cambio_turno(+1);">ACERTARON</div>
+		<div class="casilla media"></div>
+		<div class="casilla media respuesta" id="mal" onclick="punto_cambio_turno(-1);">¡TABÚ!</div>
+		<div class="casilla media"></div>
+		<div class="casilla media respuesta" id="regular" onclick="punto_cambio_turno(0);">FIN DEL TIEMPO</div>
+	</div>
+	
+	<script src="lista.js"></script>
+	<script>
+		var maxtime  = 20;
+		var timestep = 0.1;
+		var time     = maxtime;
+		var sel      = 0;
+		var turno    = Math.round(Math.random());
+		var audio = new Audio('countdown.mp3');
+		var wrong = new Audio('wrong.mp3');
+		var right = new Audio('right.mp3');
+		var audiohasbeenplayed = false;
+		
+		var marcador = [0, 0];
+		var timeout;
+		
+		mostrar_ventana("instrucciones");
+		
+		function sortearcarta(){
+			sel = Math.floor(Math.random()*tabla.length);
+			for (var i=0; i<=5; i++){
+				document.getElementById("p" + i).innerHTML = tabla[sel][i];
+			}
+		}
+		
+		function comenzar(){
+			maxtime = parseInt(document.getElementById("tiempo").value);
+			if (turno===0){
+				document.getElementById("equipo").innerHTML = '<span class="red">ROJO</span>';
+				titulonegro();
+				document.getElementById("p0").classList.add("red");
+			}else{
+				document.getElementById("equipo").innerHTML = '<span class="blue">AZUL</span>';
+				titulonegro();
+				document.getElementById("p0").classList.add("blue");
+			}
+			
+			document.getElementById("rojo").innerHTML = marcador[0];
+			document.getElementById("azul").innerHTML = marcador[1];
+			document.getElementById("rojo2").innerHTML = marcador[0];
+			document.getElementById("azul2").innerHTML = marcador[1];
+			
+			mostrar_ventana("resumen");
+		}
+		
+		function titulonegro(){
+			document.getElementById("p0").classList.remove("red");
+			document.getElementById("p0").classList.remove("blue");
+		}
+		
+		function vamos(){
+			time = maxtime;
+			escribirtiempo(time);
+			sortearcarta();
+			mostrar_ventana("tarjeta");
+			timeout = setInterval(progreso,timestep*1000);
+			audiohasbeenplayed = false;
+		}
+		
+		function escribirtiempo(t){
+			if (t<=10.3 && !audiohasbeenplayed){
+				audiohasbeenplayed = true;
+				audio.play();
+			}
+			if (t<=0){
+				document.getElementById("adivinar").innerHTML = "Había que adivinar: <b>" + tabla[sel][0] + "</b>";
+				document.getElementById("tabus").innerHTML = "Sin decir: <b>" + tabla[sel][1] + ", " + tabla[sel][2] + ", " + tabla[sel][3] + ", " + tabla[sel][4] + "</b> ni <b>" + tabla[sel][5] + "</b>";
+				mostrar_ventana("fin_tiempo");
+				clearTimeout(timeout);
+			}
+			document.getElementById("contador").innerHTML = Math.round(t) + "s";
+			document.getElementById("progreso").style.width = t/maxtime*100 + "%"; // width in PIXELS
+			document.getElementById("progreso").style.backgroundColor = "hsl(" + Math.round(t/maxtime*200) + ",70%,53%)"; // hsl color
+		}
+		
+		function progreso(){
+			time = time-timestep;
+			escribirtiempo(time);
+		}
+		
+		function punto_cambio_turno(incremento){
+			audio.pause();
+			audio.currentTime = 0;
+			clearTimeout(timeout);
+			if (incremento===-1){
+				wrong.play();
+			}
+			if (incremento===1){
+				right.play();
+			}
+			marcador[turno] = Math.max(0,marcador[turno]+incremento);
+			turno = (turno + 1) % 2;
+			comenzar();
+		}
+		
+		function mostrar_ventana(id_ventana){
+			document.getElementById("instrucciones").style.display = "none";
+			document.getElementById("resumen").style.display       = "none";
+			document.getElementById("tarjeta").style.display       = "none";
+			document.getElementById("fin_tiempo").style.display    = "none";
+			
+			document.getElementById(id_ventana).style.display = "block";
+		}
+		
+	</script>
+</body>
+
+</html>
